@@ -1,4 +1,4 @@
-package main
+package handler
 
 import (
 	"context"
@@ -43,7 +43,7 @@ func (c *Converter) isValidFileType(name string) bool {
 	return ext == ".mp4"
 }
 
-func (c *Converter) eventHandler(event fsnotify.Event) {
+func (c *Converter) HandleEvent(event fsnotify.Event) {
 	switch {
 	case event.Has(fsnotify.Write):
 		if c.isValidFileType(event.Name) {
@@ -62,26 +62,22 @@ func (c *Converter) eventHandler(event fsnotify.Event) {
 	}
 }
 
-func (c *Converter) InitScan() error {
-	return scan(c.SrcDir, c.target, c.isValidFileType)
+func (c *Converter) HandleScannedFiles(files []string) {
+	for _, f := range files {
+		c.target <- f
+	}
 }
 
-func (c *Converter) WatchAndConvert(ctx context.Context) (<-chan error, error) {
-	errCh := make(chan error)
-	err := newWatcher(ctx, c.SrcDir, errCh, c.eventHandler)
-	if err != nil {
-		close(errCh)
-		return nil, err
-	}
+func (c *Converter) CheckConcerned(name string) bool {
+	return c.isValidFileType(name)
+}
 
+func (c *Converter) Start(ctx context.Context) {
 	// 10秒ごとにイベント発生する
 	ticker := time.NewTicker(10 * time.Second)
-	go func() {
-		// 非同期処理を終了する際にerrChをCloseする
-		defer func() {
-			close(errCh)
-		}()
 
+	// fsnotify.Writeが発生しなくなってから時間経過したファイルを変換処理の対象とする
+	go func() {
 		for {
 			select {
 			case <-ctx.Done():
@@ -117,8 +113,6 @@ func (c *Converter) WatchAndConvert(ctx context.Context) (<-chan error, error) {
 			}
 		}
 	}()
-
-	return errCh, err
 }
 
 func (c *Converter) convert(movFilePath string) error {

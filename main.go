@@ -4,6 +4,9 @@ import (
 	"context"
 	"log"
 	"os"
+
+	"github.com/kawaken/eclair/handler"
+	"github.com/kawaken/eclair/notify"
 )
 
 func main() {
@@ -18,10 +21,24 @@ func main() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	converter := NewConverter(src, dst)
-	converter.InitScan()
-	errCh, err := converter.WatchAndConvert(ctx)
+	errCh := make(chan error)
 
+	converter := handler.NewConverter(src, dst)
+	converter.Start(ctx)
+
+	notifier, err := notify.NewNotifier(src, converter)
+	if err != nil {
+		cancel()
+		log.Fatal(err)
+	}
+
+	err = notifier.Scan()
+	if err != nil {
+		cancel()
+		log.Fatal(err)
+	}
+
+	err = notifier.Watch(ctx, errCh)
 	if err != nil {
 		cancel()
 		log.Fatal(err)
