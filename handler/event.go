@@ -3,6 +3,8 @@ package handler
 import (
 	"fmt"
 	"log"
+	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -105,4 +107,8 @@ func (e *Events) Len() int {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	return len(e.events)
+}
+
+func concernedFileType(name, ext string) bool {
+	return ext == strings.ToLower(filepath.Ext(name))
 }

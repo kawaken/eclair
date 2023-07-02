@@ -32,15 +32,10 @@ func NewHLSGenerator(src, dst string) *HLSGenerator {
 	}
 }
 
-func (h *HLSGenerator) isValidFileType(name string) bool {
-	ext := strings.ToLower(filepath.Ext(name))
-	return ext == ".mp4"
-}
-
 func (h *HLSGenerator) HandleEvent(event fsnotify.Event) {
 	switch {
 	case event.Has(fsnotify.Write):
-		if h.isValidFileType(event.Name) {
+		if h.CheckConcerned(event.Name) {
 			h.events.Set(event)
 		}
 	case event.Has(fsnotify.Rename):
@@ -63,7 +58,7 @@ func (h *HLSGenerator) HandleScannedFiles(files []string) {
 }
 
 func (h *HLSGenerator) CheckConcerned(name string) bool {
-	return h.isValidFileType(name)
+	return concernedFileType(name, "mp4")
 }
 
 func (h *HLSGenerator) Start(ctx context.Context) {
@@ -81,7 +76,7 @@ func (h *HLSGenerator) Start(ctx context.Context) {
 				targets := h.events.VerifyExpiredEvents()
 
 				for _, t := range targets {
-					if h.isValidFileType(t.Name) {
+					if h.CheckConcerned(t.Name) {
 						h.target <- t.Name
 					}
 				}
