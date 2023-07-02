@@ -15,7 +15,7 @@ import (
 
 const targetBuffer = 100
 
-type Converter struct {
+type HLSGenerator struct {
 	SrcDir string
 	DstDir string
 	target chan string
@@ -28,9 +28,9 @@ type Converted struct {
 	Err  error
 }
 
-func NewConverter(src, dst string) *Converter {
+func NewHLSGenerator(src, dst string) *HLSGenerator {
 
-	return &Converter{
+	return &HLSGenerator{
 		SrcDir: src,
 		DstDir: dst,
 		target: make(chan string, targetBuffer),
@@ -38,23 +38,23 @@ func NewConverter(src, dst string) *Converter {
 	}
 }
 
-func (c *Converter) isValidFileType(name string) bool {
+func (h *HLSGenerator) isValidFileType(name string) bool {
 	ext := strings.ToLower(filepath.Ext(name))
 	return ext == ".mp4"
 }
 
-func (c *Converter) HandleEvent(event fsnotify.Event) {
+func (h *HLSGenerator) HandleEvent(event fsnotify.Event) {
 	switch {
 	case event.Has(fsnotify.Write):
-		if c.isValidFileType(event.Name) {
-			c.events.Set(event)
+		if h.isValidFileType(event.Name) {
+			h.events.Set(event)
 		}
 	case event.Has(fsnotify.Rename):
 		// Renameイベントは古いファイル名に対して発生する
 		// 同じディレクトリにある場合は新しいファイルでCREATEが起きるため除去する
-		c.events.Remove(event)
+		h.events.Remove(event)
 	case event.Has(fsnotify.Remove):
-		c.events.Remove(event)
+		h.events.Remove(event)
 	case event.Has(fsnotify.Chmod):
 		// ignore event
 	default:
@@ -62,17 +62,17 @@ func (c *Converter) HandleEvent(event fsnotify.Event) {
 	}
 }
 
-func (c *Converter) HandleScannedFiles(files []string) {
+func (h *HLSGenerator) HandleScannedFiles(files []string) {
 	for _, f := range files {
-		c.target <- f
+		h.target <- f
 	}
 }
 
-func (c *Converter) CheckConcerned(name string) bool {
-	return c.isValidFileType(name)
+func (h *HLSGenerator) CheckConcerned(name string) bool {
+	return h.isValidFileType(name)
 }
 
-func (c *Converter) Start(ctx context.Context) {
+func (h *HLSGenerator) Start(ctx context.Context) {
 	// 10秒ごとにイベント発生する
 	ticker := time.NewTicker(10 * time.Second)
 
@@ -84,11 +84,11 @@ func (c *Converter) Start(ctx context.Context) {
 				// 終了されたらループを抜ける
 				return
 			case <-ticker.C:
-				targets := c.events.VerifyExpiredEvents()
+				targets := h.events.VerifyExpiredEvents()
 
 				for _, t := range targets {
-					if c.isValidFileType(t.Name) {
-						c.target <- t.Name
+					if h.isValidFileType(t.Name) {
+						h.target <- t.Name
 					}
 				}
 			}
@@ -102,20 +102,20 @@ func (c *Converter) Start(ctx context.Context) {
 			case <-ctx.Done():
 				// 終了されたらループを抜ける
 				return
-			case t, ok := <-c.target:
+			case t, ok := <-h.target:
 				if !ok {
 					// targetがcloseされていたら終了
 					return
 				}
 				// convert処理のエラーは無視する
 				// ログを見て対応する
-				c.convert(t)
+				h.convert(t)
 			}
 		}
 	}()
 }
 
-func (c *Converter) convert(movFilePath string) error {
+func (h *HLSGenerator) convert(movFilePath string) error {
 	// 処理対象のファイル
 	log.Printf("Target: %s", movFilePath)
 
@@ -127,7 +127,7 @@ func (c *Converter) convert(movFilePath string) error {
 	// ファイル名を利用して新規ディレクトリを作成する
 	movFilename := filepath.Base(movFilePath)
 	dirName := strings.TrimSuffix(movFilename, ".mp4")
-	dirPath := filepath.Join(c.DstDir, dirName)
+	dirPath := filepath.Join(h.DstDir, dirName)
 	// リストのファイル名は固定
 	outputPath := filepath.Join(dirPath, "video.m3u8")
 	tsBasePath := filepath.Join(dirPath, "video%3d.ts")

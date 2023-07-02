@@ -23,7 +23,7 @@ func main() {
 
 	errCh := make(chan error)
 
-	converter := handler.NewConverter(src, dst)
+	converter := handler.NewHLSGenerator(src, dst)
 	converter.Start(ctx)
 
 	notifier, err := notify.NewNotifier(src, converter)
