@@ -13,76 +13,76 @@ const (
 	DefaultExpiration = 2 * time.Minute
 )
 
-type MP4Event struct {
+type Event struct {
 	fsnotify.Event
 	OccurredAt time.Time
 	Expiration time.Duration
 }
 
-func NewMP4Event(e fsnotify.Event) *MP4Event {
-	return &MP4Event{
+func NewEvent(e fsnotify.Event) *Event {
+	return &Event{
 		Event:      e,
 		OccurredAt: time.Now(),
 		Expiration: DefaultExpiration,
 	}
 }
 
-func (me *MP4Event) String() string {
+func (me *Event) String() string {
 	return fmt.Sprintf("occurred: %s %s", me.OccurredAt, me.Event)
 }
 
-func (me *MP4Event) IsNone() bool {
+func (me *Event) IsNone() bool {
 	return me.OccurredAt.IsZero()
 }
 
-func (e *MP4Event) IsExpired() bool {
+func (e *Event) IsExpired() bool {
 	expirationTime := e.OccurredAt.Add(e.Expiration)
 	currentTime := time.Now()
 	return !e.IsNone() && currentTime.After(expirationTime)
 }
 
-type MP4Events struct {
+type Events struct {
 	mu     sync.Mutex
-	events map[string]*MP4Event
+	events map[string]*Event
 }
 
-func NewMP4Events() *MP4Events {
-	return &MP4Events{
-		events: make(map[string]*MP4Event),
+func NewEvents() *Events {
+	return &Events{
+		events: make(map[string]*Event),
 	}
 }
 
-func (e *MP4Events) Lock(f func(*MP4Events)) {
+func (e *Events) Lock(f func(*Events)) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	f(e)
 }
 
-func (e *MP4Events) Set(event fsnotify.Event) {
+func (e *Events) Set(event fsnotify.Event) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
-	me := NewMP4Event(event)
+	me := NewEvent(event)
 	e.events[event.Name] = me
 }
 
-func (e *MP4Events) Get(event fsnotify.Event) (*MP4Event, bool) {
+func (e *Events) Get(event fsnotify.Event) (*Event, bool) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	me, ok := e.events[event.Name]
 	return me, ok
 }
 
-func (e *MP4Events) Remove(event fsnotify.Event) {
+func (e *Events) Remove(event fsnotify.Event) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	delete(e.events, event.Name)
 }
 
-func (e *MP4Events) VerifyExpiredEvents() []*MP4Event {
+func (e *Events) VerifyExpiredEvents() []*Event {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
-	results := make([]*MP4Event, 0)
+	results := make([]*Event, 0)
 	deletion := make([]string, 0)
 
 	for k, v := range e.events {
@@ -101,7 +101,7 @@ func (e *MP4Events) VerifyExpiredEvents() []*MP4Event {
 	return results
 }
 
-func (e *MP4Events) Len() int {
+func (e *Events) Len() int {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	return len(e.events)

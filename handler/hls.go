@@ -19,7 +19,7 @@ type HLSGenerator struct {
 	SrcDir string
 	DstDir string
 	target chan string
-	events *MP4Events
+	events *Events
 }
 
 type Converted struct {
@@ -34,7 +34,7 @@ func NewHLSGenerator(src, dst string) *HLSGenerator {
 		SrcDir: src,
 		DstDir: dst,
 		target: make(chan string, targetBuffer),
-		events: NewMP4Events(),
+		events: NewEvents(),
 	}
 }
 
