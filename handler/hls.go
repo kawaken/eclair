@@ -22,12 +22,6 @@ type HLSGenerator struct {
 	events *Events
 }
 
-type Converted struct {
-	From string
-	To   string
-	Err  error
-}
-
 func NewHLSGenerator(src, dst string) *HLSGenerator {
 
 	return &HLSGenerator{
