@@ -13,8 +13,6 @@ import (
 	"github.com/fsnotify/fsnotify"
 )
 
-const targetBuffer = 100
-
 type HLSGenerator struct {
 	SrcDir string
 	DstDir string
@@ -27,7 +25,7 @@ func NewHLSGenerator(src, dst string) *HLSGenerator {
 	return &HLSGenerator{
 		SrcDir: src,
 		DstDir: dst,
-		target: make(chan string, targetBuffer),
+		target: make(chan string, 100),
 		events: NewEvents(),
 	}
 }
