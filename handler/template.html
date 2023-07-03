@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{.Title}}</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css"
+    />
+    <link href="https://vjs.zencdn.net/8.3.0/video-js.css" rel="stylesheet" />
+  </head>
+  <body>
+    <section class="section" sytle="background-color:black">
+      <nav class="level is-mobile">
+        <h1 class="title"><a href="/">動画一覧</a></h1>
+      </nav>
+      <div class="container">
+        <h1 class="title">{{.Title}}</h1>
+        <figure class="image is-16by9">
+          <video
+            id="video"
+            class="video-js has-ratio"
+            controls
+            preload="auto"
+            width="1920"
+            height="1080"
+            poster="{{.Thumbnail}}"
+            data-setup="{}"
+          >
+            <source src="{{.Src}}" type="application/vnd.apple.mpegurl" />
+          </video>
+        </figure>
+      </div>
+    </section>
+    <script src="https://vjs.zencdn.net/8.3.0/video.min.js"></script>
+  </body>
+</html>

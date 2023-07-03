@@ -19,6 +19,9 @@ func main() {
 		log.Fatal("DST_DIR is required")
 	}
 
+	log.Printf("SRC_DIR: %s", src)
+	log.Printf("DST_DIR: %s", dst)
+
 	ctx, cancel := context.WithCancel(context.Background())
 
 	errCh := make(chan error)

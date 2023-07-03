@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"path/filepath"
 
 	"github.com/fsnotify/fsnotify"
@@ -58,6 +59,7 @@ func (watcher *Notifier) Scan() error {
 
 		filepathList = append(filepathList, filepath.Join(watcher.Dir, f.Name()))
 	}
+	log.Printf("scanned files: %s", filepathList)
 
 	for _, h := range watcher.Handlers {
 		wants := make([]string, 0)
@@ -66,6 +68,7 @@ func (watcher *Notifier) Scan() error {
 				wants = append(wants, f)
 			}
 		}
+		log.Println(wants)
 		if len(wants) > 0 {
 			go h.HandleScannedFiles(wants)
 		}

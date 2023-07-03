@@ -56,7 +56,7 @@ func (h *HLSGenerator) HandleScannedFiles(files []string) {
 }
 
 func (h *HLSGenerator) CheckConcerned(name string) bool {
-	return concernedFileType(name, "mp4")
+	return concernedFileType(name, ".mp4")
 }
 
 func (h *HLSGenerator) Start(ctx context.Context) {
@@ -100,6 +100,8 @@ func (h *HLSGenerator) Start(ctx context.Context) {
 			}
 		}
 	}()
+
+	log.Println("HLSGenerator start")
 }
 
 func (h *HLSGenerator) convert(movFilePath string) error {
@@ -119,6 +121,7 @@ func (h *HLSGenerator) convert(movFilePath string) error {
 	m3u8Path := filepath.Join(dirPath, "video.m3u8")
 	tsBasePath := filepath.Join(dirPath, "video%3d.ts")
 	thumbPath := filepath.Join(dirPath, "thumb.jpg")
+	htmlPath := filepath.Join(dirPath, "index.html")
 
 	// すでに存在していたらスキップする
 	if _, err := os.Stat(m3u8Path); err == nil {
@@ -167,6 +170,20 @@ func (h *HLSGenerator) convert(movFilePath string) error {
 		os.RemoveAll(dirPath)
 	} else {
 		log.Printf("Conversion complete %s to %s", movFilePath, thumbPath)
+	}
+
+	// HTMLファイルを生成する
+	htmlGen := &HTMLGenerator{
+		Title:     "",
+		Thumbnail: "thumb.jpg",
+		Src:       "video.m3u8",
+	}
+	err = htmlGen.generate(htmlPath)
+	if err != nil {
+		log.Printf("ERROR: HTML generation %s", err)
+		os.RemoveAll(dirPath)
+	} else {
+		log.Printf("Conversion complete %s to %s", movFilePath, htmlPath)
 	}
 
 	return err
