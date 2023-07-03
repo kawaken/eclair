@@ -116,12 +116,13 @@ func (h *HLSGenerator) convert(movFilePath string) error {
 	dirName := strings.TrimSuffix(movFilename, ".mp4")
 	dirPath := filepath.Join(h.DstDir, dirName)
 	// リストのファイル名は固定
-	outputPath := filepath.Join(dirPath, "video.m3u8")
+	m3u8Path := filepath.Join(dirPath, "video.m3u8")
 	tsBasePath := filepath.Join(dirPath, "video%3d.ts")
+	thumbPath := filepath.Join(dirPath, "thumb.jpg")
 
 	// すでに存在していたらスキップする
-	if _, err := os.Stat(outputPath); err == nil {
-		log.Printf("SKIP exists: %s", outputPath)
+	if _, err := os.Stat(m3u8Path); err == nil {
+		log.Printf("SKIP exists: %s", m3u8Path)
 		return nil
 	}
 
@@ -132,8 +133,8 @@ func (h *HLSGenerator) convert(movFilePath string) error {
 	}
 
 	// ffmpegを利用して処理を実行する
-	log.Printf("Conversion start %s to %s", movFilePath, outputPath)
-	cmd := exec.Command("ffmpeg",
+	log.Printf("Conversion start %s to %s", movFilePath, m3u8Path)
+	toHLS := exec.Command("ffmpeg",
 		"-i", movFilePath,
 		"-c:v", "copy", // ビデオフォーマットはそのまま
 		"-c:a", "copy", // オーディオフォーマットはそのまま
@@ -143,15 +144,29 @@ func (h *HLSGenerator) convert(movFilePath string) error {
 		"-hls_playlist_type", "vod",
 		"-hls_segment_filename", tsBasePath, // video000.ts というファイル名にする
 		"-hls_segment_type", "fmp4", // FMP4 フォーマットを利用する
-		outputPath,
+		m3u8Path,
 	)
-	//log.Println(cmd.String())
-	err = cmd.Run()
+	err = toHLS.Run()
 	if err != nil {
 		log.Printf("ERROR: ffmpeg %s", err)
 		os.RemoveAll(dirPath)
 	} else {
-		log.Printf("Conversion complete %s to %s", movFilePath, outputPath)
+		log.Printf("Conversion complete %s to %s", movFilePath, m3u8Path)
+	}
+
+	log.Printf("Conversion start %s to %s", movFilePath, thumbPath)
+	toTHM := exec.Command("ffmpeg",
+		"-i", movFilePath,
+		"-vf", "thumbnail=3600,scale=1280:720", // 開始1分を対象（60fps * 60sec）
+		"-frames:v", "1", // 画像は1フレーム
+		thumbPath,
+	)
+	err = toTHM.Run()
+	if err != nil {
+		log.Printf("ERROR: ffmpeg %s", err)
+		os.RemoveAll(dirPath)
+	} else {
+		log.Printf("Conversion complete %s to %s", movFilePath, thumbPath)
 	}
 
 	return err
