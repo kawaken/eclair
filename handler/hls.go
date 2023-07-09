@@ -32,6 +32,8 @@ func NewHLSGenerator(src, dst string) *HLSGenerator {
 
 func (h *HLSGenerator) HandleEvent(event fsnotify.Event) {
 	switch {
+	case event.Has(fsnotify.Create):
+		fallthrough
 	case event.Has(fsnotify.Write):
 		if h.CheckConcerned(event.Name) {
 			h.events.Set(event)
@@ -96,7 +98,10 @@ func (h *HLSGenerator) Start(ctx context.Context) {
 				}
 				// convert処理のエラーは無視する
 				// ログを見て対応する
-				h.convert(t)
+				err := h.convert(t)
+				if err != nil {
+					log.Println(err)
+				}
 			}
 		}
 	}()
@@ -153,6 +158,7 @@ func (h *HLSGenerator) convert(movFilePath string) error {
 	if err != nil {
 		log.Printf("ERROR: ffmpeg %s", err)
 		os.RemoveAll(dirPath)
+		return err
 	} else {
 		log.Printf("Conversion complete %s to %s", movFilePath, m3u8Path)
 	}
@@ -168,23 +174,33 @@ func (h *HLSGenerator) convert(movFilePath string) error {
 	if err != nil {
 		log.Printf("ERROR: ffmpeg %s", err)
 		os.RemoveAll(dirPath)
+		return err
 	} else {
 		log.Printf("Conversion complete %s to %s", movFilePath, thumbPath)
 	}
 
 	// HTMLファイルを生成する
 	htmlGen := &HTMLGenerator{
-		Title:     "",
+		Title:     movFilename,
 		Thumbnail: "thumb.jpg",
 		Src:       "video.m3u8",
 	}
-	err = htmlGen.generate(htmlPath)
+	err = htmlGen.generateSingle(htmlPath)
 	if err != nil {
 		log.Printf("ERROR: HTML generation %s", err)
 		os.RemoveAll(dirPath)
+		return err
 	} else {
 		log.Printf("Conversion complete %s to %s", movFilePath, htmlPath)
 	}
 
+	err = generateIndex(h.DstDir)
+	if err != nil {
+		log.Printf("ERROR: HTML generation %s", err)
+		os.RemoveAll(dirPath)
+		return err
+	} else {
+		log.Printf("Conversion complete %s to %s", movFilePath, filepath.Join(h.DstDir, "index.html"))
+	}
 	return err
 }

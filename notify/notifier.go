@@ -68,7 +68,6 @@ func (watcher *Notifier) Scan() error {
 				wants = append(wants, f)
 			}
 		}
-		log.Println(wants)
 		if len(wants) > 0 {
 			go h.HandleScannedFiles(wants)
 		}

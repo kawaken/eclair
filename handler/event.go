@@ -85,18 +85,18 @@ func (e *Events) VerifyExpiredEvents() []*Event {
 	defer e.mu.Unlock()
 
 	results := make([]*Event, 0)
-	deletion := make([]string, 0)
+	deletionKeys := make([]string, 0)
 
 	for k, v := range e.events {
 		expired := v.IsExpired()
 		if expired {
 			log.Printf("Expired: %s, %s", k, v.OccurredAt)
 			results = append(results, v)
-			deletion = append(deletion, k)
+			deletionKeys = append(deletionKeys, k)
 		}
 	}
 
-	for _, k := range deletion {
+	for _, k := range deletionKeys {
 		delete(e.events, k)
 	}
 
